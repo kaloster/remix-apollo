@@ -8,7 +8,7 @@ import {
   InMemoryCache,
   createHttpLink,
 } from "@apollo/client";
-
+import { ServerStyleSheet } from "styled-components";
 
 interface Request {
   headers: Record<string, string>;
@@ -31,6 +31,7 @@ export default function handleRequest(
       credentials: request.credentials ?? "same-origin", 
     }),
   });
+  
 
   const App = (
     <ApolloProvider client={client}>
@@ -40,9 +41,10 @@ export default function handleRequest(
 
   return getDataFromTree(App).then(() => {
     const initialState = client.extract();
+    const sheet = new ServerStyleSheet();
 
-    const markup = renderToString(
-      <>
+    let markup = renderToString(
+      sheet.collectStyles(<>
         {App}
         <script
           dangerouslySetInnerHTML={{
@@ -51,9 +53,10 @@ export default function handleRequest(
             ).replace(/</g, "\\u003c")}`, // replaces < and script tags to prevent cross site scripting
           }}
         />
-      </>
+      </>)
     );
-
+    const styles = sheet.getStyleTags();
+    markup = markup.replace("__STYLES__", styles);
     responseHeaders.set("Content-Type", "text/html");
 
     return new Response("<!DOCTYPE html>" + markup, {
